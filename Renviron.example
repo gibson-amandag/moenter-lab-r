@@ -1,0 +1,28 @@
+# DATA_FOLDER and OUTPUT_FOLDER do not have to be in the same folder as the
+# project, even though this is what's demonstrated in the repository
+
+DATA_FOLDER="/path/data" # "./data" is for the folder within repo
+  # should contain subfolder "burst-output" - save igor burst table outputs here
+
+OUTPUT_FOLDER="/path/output" # "./output" is for the folder within repo
+  # should contain subfolders "data", "plots", and "reports"
+
+# should be within the DATA_FOLDER 
+# use the excel-template file as the starting point to make sure that the
+# variable names match what the code is looking for
+EXCEL_FILE_NAME="fileName.xlsx"
+
+# Will be prepended to plots when saving them to your computer
+FILE_PREFIX="outputPrefix"
+
+# format specTreatment and treatment for PNA treatment groups
+USE_PNA_GROUPS = TRUE
+  #specTreatment should be "CON_main", "VEH", "CON", or "DHT"
+  #treatment should be "Control" or "PNA"
+
+# type of images to save for plots. 
+# .png, .svg, or .pdf, for example
+PLOT_OUTPUT_FORMAT = ".png"
+
+#save individual plot files?
+SAVE_PLOTS = TRUE
