@@ -34,3 +34,21 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+
+# R Environment Variables
+.Renviron
+
+# pkgdown site
+docs/
+
+# translation temp files
+po/*~
+
+#DS Store
+**/.DS_Store
+
+#ignore the generated accompanying html notebook
+*.nb.html
+
+#ignore the generated html output
+*.html
