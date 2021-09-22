@@ -1,13 +1,13 @@
 # Load Excel Sheets -------------------------------------------------------
 
-mouseInfo <- loadExcelSheet(excelFilePath, "mouseInfo")
-mouseRecording <- loadExcelSheet(excelFilePath, "mouseRecording")
-cellInfo <- loadExcelSheet(excelFilePath, "cellInfo")
-cellTiming <- loadExcelSheet(excelFilePath, "cellTiming")
-cellBinnedFiring <- loadExcelSheet(excelFilePath, "cellBinnedFiring")
-cyclesData <- loadExcelSheet(excelFilePath, "cycles")
-agdData <- loadExcelSheet(excelFilePath, "AGD")
-maturationData <- loadExcelSheet(excelFilePath, "maturation")
+mouseInfo <- loadExcelSheet(dataFolder, excelFileName, "mouseInfo")
+mouseRecording <- loadExcelSheet(dataFolder, excelFileName, "mouseRecording")
+cellInfo <- loadExcelSheet(dataFolder, excelFileName, "cellInfo")
+cellTiming <- loadExcelSheet(dataFolder, excelFileName, "cellTiming")
+cellBinnedFiring <- loadExcelSheet(dataFolder, excelFileName, "cellBinnedFiring")
+cyclesData <- loadExcelSheet(dataFolder, excelFileName, "cycles")
+agdData <- loadExcelSheet(dataFolder, excelFileName, "AGD")
+maturationData <- loadExcelSheet(dataFolder, excelFileName, "maturation")
 
 
 # FORMAT DATASETS ---------------------------------------------------------

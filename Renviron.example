@@ -1,10 +1,12 @@
 # DATA_FOLDER and OUTPUT_FOLDER do not have to be in the same folder as the
 # project, even though this is what's demonstrated in the repository
 
-DATA_FOLDER="/path/data" # "./data" is for the folder within repo
+DATA_FOLDER="/path/data" 
+# "./data" is for the folder within repo
   # should contain subfolder "burst-output" - save igor burst table outputs here
 
-OUTPUT_FOLDER="/path/output" # "./output" is for the folder within repo
+OUTPUT_FOLDER="/path/output" 
+# "./output" is for the folder within repo
   # should contain subfolders "data", "plots", and "reports"
 
 # should be within the DATA_FOLDER 
@@ -26,3 +28,6 @@ PLOT_OUTPUT_FORMAT = ".png"
 
 #save individual plot files?
 SAVE_PLOTS = TRUE
+
+#type of computer, windows or mac
+COMP_TYPE="windows"

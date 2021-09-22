@@ -57,3 +57,27 @@ saveDFsToExcel <- function(
   
   saveWorkbook(wb, filePath, overwrite = TRUE)
 }
+
+greenFill <- function(){
+  createStyle(bgFill = "#C6EFCE")
+}
+
+yellowFill <- function(){
+  createStyle(bgFill = "#ffff00")
+}
+
+redFill <- function(){
+  createStyle(bgFill = "#FFC7CE")
+}
+
+greyFill <- function(){
+  createStyle(bgFill = 	"#D3D3D3")
+}
+
+blueFill <- function(){
+  createStyle(bgFill = "#9edaff")
+}
+
+pinkFill <- function(){
+  createStyle(bgFill = "#f3b4f6")
+}

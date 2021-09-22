@@ -5,6 +5,37 @@
 
 # FORMAT ------------------------------------------------------------------
 
+#' make factors
+#'
+#' @param df a dataframe
+#' @param cols the columns that you wish to make factors; if using multiple use c(...)
+#'
+#' @return a dataframe with the indicated columns made factors
+#' @export
+#'
+#' @examples
+#' Demo_dam %>%
+#' makeFactors(c(
+#'  damID,
+#'  dam,
+#'  ParaType,
+#'  litterNum,
+#'  cohort
+#' ))
+#' 
+#' makeFactors(Off_ID, c(mouseID))
+#' makeFactors(EndPara_off, mouseID)
+makeFactors <- function(df, cols){
+  df <- df %>%
+    mutate(
+      across(
+        {{ cols }},
+        as.factor
+      )
+    )
+  return(df)
+}
+
 changeYNtoTF <- function(x){
   val <- case_when(
     x == "Y" ~ TRUE,
