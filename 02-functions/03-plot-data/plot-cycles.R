@@ -25,6 +25,18 @@ makeCyclesLong <- function(df, afterVar = earlyLifeTrt){
   return(df_long)
 }
 
+addPNDForCyles <- function(
+  df
+){
+  df <- df %>%
+    mutate(
+      cycleDate = cycleStartDate + (day - 1),
+      PND = cycleDate - DOB,
+      .after = stage
+    )
+  return(df)
+}
+
 makeCyclesPercLong <- function(
   df,
   estrus_label = "estrus",
@@ -140,7 +152,7 @@ plotCycleTraces_single <- function(
       labels = c("E", "D", "P") #replace with E, D, and P
     ) +
     scale_x_continuous(
-      breaks = seq(70, 150, 3) #labels every third integer
+      breaks = seq(1, 400, 3) #labels every third integer
     ) +
     expand_limits(
       y = 0
