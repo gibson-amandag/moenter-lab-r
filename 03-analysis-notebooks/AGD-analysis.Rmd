@@ -7,8 +7,51 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+```
+
 ```{r}
-plot(cars)
+# This script calls the libraries and sets up other variables that are necessary for analysis
+# You should also make sure to set up you .Renivron file - use the example as a template
+source("./01-scripts/set-up.R")
+```
+
+```{r}
+# This script loads the data from the excel file and combines and formats the data
+source("./01-scripts/get-datasets.R")
+```
+
+```{r eval=FALSE, include=FALSE}
+# Datasets generated
+mouseInfo
+mouseRecording
+cellInfo
+cellBinnedFiring
+cyclesData
+agdData
+maturationData
+```
+
+```{r eval=FALSE, include=FALSE}
+# this doesn't run on its own - you have to use cmd/ctrl enter within the chunk
+# will save a file to the data output folder with the datasets with demographic information and initial transformations
+saveDFsToExcel(
+  fileBaseName = "firingData",
+  mouseRecording = mouseRecording,
+  cellInfo = cellInfo,
+  cellBinnedFiring = cellBinnedFiring
+)
+```
+
+# Anogenital Distance Data
+```{r}
+agdData
+```
+
+# Maturation Data
+```{r}
+maturationData
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
