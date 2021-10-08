@@ -12,16 +12,16 @@ uploadCyclesUI <- function(id){
       tabPanel(
         "Load Excel",
         fluidRow(
-          column(
-            6,
+          div(
+            class = "col-xs-6",
             fileInput(
               ns("dataFile"),
               label = "Select Excel File",
               accept = ".xlsx"
             )
           ),
-          column(
-            6,
+          div(
+            class = "col-xs-6",
             a("Example Excel File", href = "cycleFileExample.xlsx")
           )
         ),
@@ -38,7 +38,8 @@ uploadCyclesUI <- function(id){
 
 
 uploadCyclesServer <- function(
-  id
+  id,
+  compType
 ){
   moduleServer(
     id,
@@ -88,11 +89,11 @@ uploadCyclesServer <- function(
           cycleDir(),
           damInfo(),
           offspringInfo(),
-          cycles_react()
+          cycles_react(),
+          compType
         )
       })
       
     }
   )
 }
-

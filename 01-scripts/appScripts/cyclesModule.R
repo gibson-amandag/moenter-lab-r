@@ -14,29 +14,30 @@ gg_fill_hue <- function(n) {
 cyclesUI <- function(id){
   ns <- NS(id)
   tagList(
+    # dataTableOutput(ns("test")),
     fluidRow(
-      column(
-        4,
+      div(
+        class = "col-xs-4",
         radioButtons(
           ns("xVar"),
           "Plot by:",
           c("Cycle Day" = "day", "PND" = "PND")
         )
       ),
-      column(
-        4,
+      div(
+        class = "col-xs-4",
+        varSelectInput(
+          ns("groupingVar"),
+          "Grouping Variable",
+          NULL
+        )
+      ),
+      div(
+        class = "col-xs-4",
         checkboxInput(
           ns("useLineColor"),
           "Use line color",
           value = FALSE
-        )
-      ),
-      column(
-        4,
-        varSelectInput(
-          ns("lineColorVar"),
-          "Line Color Variable",
-          NULL
         )
       )
     ),
@@ -49,17 +50,80 @@ cyclesUI <- function(id){
     tabsetPanel(
       tabPanel(
         "Cycle Plots",
-        plotOutput(ns("cyclesPlot"), height = "600px")
+        fluidRow(
+          div(
+            class = "col-xs-4",
+            sliderInput(
+              ns("cycleDays"),
+              "Select Days",
+              min = 1,
+              max = 100,
+              step = 1,
+              value = c(1, 100)
+            )
+          ),
+          div(
+            class = "col-xs-4",
+            selectInput(
+              ns("includeLevels"),
+              "Include levels",
+              multiple = TRUE,
+              choices = c()
+            )
+          ),
+          div(
+            class = "col-xs-4",
+            radioButtons(
+              ns("imgType"),
+              "Select File Type",
+              choices = c("png", "pdf")
+            ),
+            downloadButton(
+              ns("downloadCyclePlot"),
+              "Download current plot"
+            )
+          )
+        ),
+        plotOutput(ns("cyclesPlot"))
       ),
+      
+      # by mouse -------------
       tabPanel(
         "by mouse",
         fluidRow(
-          column(
-            4,
+          div(
+            class = "col-xs-4",
             selectInput(
               ns("selectedMouse"),
               label = "Select Mouse:",
               choices = character()
+            ),
+            actionButton(
+              ns("makeImgDiv"),
+              label = "Show Images",
+              icon = icon("redo")
+            )
+          ),
+          div(
+            class = "col-xs-4",
+            radioButtons(
+              ns("imgsPerRow"),
+              label = "# imgs per row",
+              choices = c(1, 2, 3, 4, 6),
+              selected = 3
+            )
+          ),
+          div(
+            class = "col-xs-4",
+            radioButtons(
+              ns("imgsPerSlide"),
+              label = "# imgs per slide",
+              choices = c(4, 9, 12),
+              selected = 12
+            ),
+            downloadButton(
+              ns("downloadMousePPT"),
+              label = "Download Mouse's PPT"
             )
           )
         ),
@@ -67,6 +131,7 @@ cyclesUI <- function(id){
           ns("selCyclePlot"),
           height = "200px"
         ),
+        tags$div(id = "placeholder"),
         uiOutput(
           ns("selImages")
         )
@@ -81,68 +146,129 @@ cyclesServer <- function(
   cycleDir,
   damInfo,
   offspringInfo,
-  Cycles_off
+  cyclesDF,
+  compType
 ){
   moduleServer(
     id,
     function(input, output, session) {
-      print(cycleDir)
+      observe({
+        cycleDir
+        damInfo
+        offspringInfo
+        cyclesDF
+        compType
+      })
       
-      cycles_long <- reactive({
-        req(Cycles_off)
-        df <- Cycles_off %>%
+      # Reactive wide cycles table
+      # Filter by grouping variable levels
+      cycles_react <- reactive({
+        # req(cyclesDF, input$groupingVar, input$includeLevels)
+        if(!is.null(input$groupingVar)){
+          df <- cyclesDF %>%
+            filter(
+              !! input$groupingVar %in% as.character(input$includeLevels)
+            )
+        } else (df <- cyclesDF)
+        return(df)
+      })
+      
+      # Update days slider
+      observe({
+        req(cyclesDF, input$groupingVar)
+        df <- cyclesDF %>%
           makeCyclesLong(afterVar = cycleStartDate) %>%
           addPNDForCyles()
-          # mutate(
-          #   cycleDate = cycleStartDate + (day - 1),
-          #   PND = cycleDate - DOB,
-          #   .after = stage
-          # )
+        minDay <- min(df$day, na.rm = TRUE)
+        maxDay <- max(df$day, na.rm = TRUE)
+        updateSliderInput(
+          session = session,
+          "cycleDays",
+          min = minDay,
+          max = maxDay,
+          value = c(minDay, maxDay)
+        )
+      })
+      
+      # Long-form cycles dataframe. Filters by day selection + groupingVar levels
+      cycles_long <- reactive({
+        req(cyclesDF, input$groupingVar)
+        # print(input$cycleDays[1])
+        df <- cycles_react() %>%
+          makeCyclesLong(afterVar = cycleStartDate) %>%
+          addPNDForCyles()%>%
+          filter(
+            day >= input$cycleDays[1] & day <= input$cycleDays[2]
+          )
+        return(df)
+      })
+      
+      # Long-form cycles dataframe. Does not filter by day/groupingVar levels
+      cycles_long_indiv <- reactive({
+        req(cyclesDF)
+        df <- cyclesDF %>%
+          makeCyclesLong(afterVar = cycleStartDate) %>%
+          addPNDForCyles()
         return(df)
       })
       
       # Cycle Plots Panel -------------------------------------------------------
       
       ## Color Variable and Levels ------------------
-      observeEvent(Cycles_off, {
+      # Update groupingVar options
+      observe({
         updateVarSelectInput(
           session,
-          "lineColorVar",
-          data = Cycles_off %>% 
-            select(where(~ is.character(.x) | is.factor(.x)))
+          "groupingVar",
+          data = cyclesDF %>%
+            select(where(~ is.character(.x) | is.factor(.x))) %>%
+            relocate(
+              mouseID,
+              .after = last_col()
+            )
         )
       })
       
-      lineColorLevels <- reactive({
-        req(Cycles_off, input$lineColorVar)
-        unique(cycles_long()[[input$lineColorVar]])
+      # Update possible groupingVar levels
+      groupingVarLevels <- reactive({
+        req(cyclesDF, input$groupingVar)
+        unique(cyclesDF[[input$groupingVar]])
       })
       
+      # Update levels selection options when groupingVar changes
+      observeEvent(input$groupingVar,{
+        updateSelectInput(
+          session = session,
+          inputId = "includeLevels",
+          choices = groupingVarLevels(),
+          selected = groupingVarLevels()
+        )
+      })
+      
+      # Create a colorUI if useLineColor is selected
       output$colorUI <- renderUI({
-        req(Cycles_off, input$lineColorVar)
+        req(cyclesDF, input$groupingVar)
         
         if(input$useLineColor){
-          lev <- lineColorLevels()
+          lev <- groupingVarLevels()
           cols <- gg_fill_hue(length(lev))
           
           # New IDs "col+level"
           lapply(seq_along(lev), function(i) {
-            column(
-              4,
-              colourInput(inputId = session$ns(paste0("col", lev[i])),
-                          label = paste0("Choose colour for ", lev[i]), 
-                          value = cols[i]
+            div(
+              class = "col-xs-4",
+              colourpicker::colourInput(inputId = session$ns(paste0("col", i)),
+                                        label = paste0("Choose color for ", lev[i]),
+                                        value = cols[i]
               )
             )
           })
         }
       })
       
+      # Reset to default colors when resetColors is pressed
       observeEvent(input$resetColors, {
-        # Problem: dynamic number of widgets
-        # - lapply, do.call
-        
-        lev <- lineColorLevels()
+        lev <- groupingVarLevels()
         cols <- gg_fill_hue(length(lev))
         
         lapply(seq_along(lev), function(i) {
@@ -157,15 +283,24 @@ cyclesServer <- function(
       })
       
       ## Plot --------------------------
-      output$cyclesPlot <- renderPlot({
-        req(Cycles_off, input$lineColorVar)
+      # Number of rows in the cycles plot. Used to determine size of container on page
+      nrowsPlot <- reactive({
+        numMice <- nrow(cycles_react())
+        nrowsPlot <- ceiling(numMice/4)
+        nrowsPlot <- ifelse(nrowsPlot > 0, nrowsPlot, 1)
+        return(nrowsPlot)
+      })
+      
+      # Make the groupCycles plot. Need at least one row and the groupingVar input ready
+      groupCyclesPlot <- reactive({
+        req(nrow(cycles_long()) > 0, input$groupingVar)
         
         
         if(input$useLineColor){
-          lineColor = expr(.data[[input$lineColorVar]])
+          lineColor = expr(.data[[input$groupingVar]])
           noLegends = FALSE
-          lev <- lineColorLevels()
-          cols <- paste0("c(", paste0("input$col", lev, collapse = ", "), ")")
+          lev <- groupingVarLevels()
+          cols <- paste0("c(", paste0("input$col", 1:length(lev), collapse = ", "), ")")
           # print(cols)
           cols <- eval(parse(text = cols))
           # print(cols)
@@ -178,7 +313,7 @@ cyclesServer <- function(
           cols = NULL
         }
         
-        cycles_long() %>%
+        viz <- cycles_long() %>%
           plotCycleTraces(
             day = .data[[input$xVar]],
             lineColorVar = !! lineColor,
@@ -186,60 +321,58 @@ cyclesServer <- function(
             colorValues = cols,
             removeFacets = FALSE,
             removeLegend = noLegends,
-            scales = "free_x"
+            scales = "free_x",
+            ncol = 4
           )
+        return(viz)
       })
       
+      # Add the plot to the page and use nrowsPlot to make it the right size
+      output$cyclesPlot <- renderPlot(
+        groupCyclesPlot(),
+        height = function() {nrowsPlot() * 150} #function prevents it from resetting each time
+      )
+      
+      # Download the group cycles plot
+      output$downloadCyclePlot <- downloadHandler(
+        filename = function() {
+          paste0("cyclePlots-", Sys.Date(), ".", input$imgType)
+        },
+        content = function(file) {
+          flexSave(
+            baseName = file,
+            thisFilePrefix = NULL,
+            plot = last_plot(),
+            fileType = input$imgType,
+            filePath = NULL,
+            width = 8,
+            height = ifelse(nrowsPlot() * 2 < 10, nrowsPlot() * 2, 10),
+            units = "in",
+            compType = currentCompType,
+            shinySettings = TRUE,
+          )
+        }
+      )
       
       # By Mouse ----------------------------------------------------------------
-      observeEvent(Cycles_off, {
+      # Update the selected mouse options. Don't make reactive to other filters
+      observeEvent(cyclesDF, {
         updateSelectInput(
           session,
           "selectedMouse",
-          choices = Cycles_off$mouseID
+          choices = cyclesDF$mouseID
         )
       })
       
-      selectedMouseFiles <- eventReactive(input$selectedMouse, {
-        req(Cycles_off, input$selectedMouse)
-        
-        
-        cycleID <- Cycles_off$cycleID[which(Cycles_off$mouseID == input$selectedMouse)]
-        print(cycleID)
-        
-        if(! length(cycleID) == 0){
-          idText <- sprintf("%04d", as.integer(cycleID))
-          
-          fileEnding <- paste0("*", idText, ".jpg")
-          
-          files <- dir_ls(
-            normalizePath(cycleDir),
-            all = TRUE,
-            recurse = TRUE,
-            type = "any",
-            glob = fileEnding
-          ) 
-          sortOrder <- files %>% path_file() %>% order()
-          files <- files[sortOrder]
-          print(files)
-          return(
-            files
-          )
-        } else{
-          return(
-            NULL
-          )
-        }
-      })
-      
+      ## Individual Mouse Plot -------------------
       output$selCyclePlot <- renderPlot({
-        req(Cycles_off, input$lineColorVar)
+        req(cyclesDF, input$groupingVar)
         
         if(input$useLineColor){
-          lineColor = expr(.data[[input$lineColorVar]])
+          lineColor = expr(.data[[input$groupingVar]])
           noLegends = FALSE
-          lev <- lineColorLevels()
-          cols <- paste0("c(", paste0("input$col", lev, collapse = ", "), ")")
+          lev <- groupingVarLevels()
+          cols <- paste0("c(", paste0("input$col", 1:length(lev), collapse = ", "), ")")
           # print(cols)
           cols <- eval(parse(text = cols))
           # print(cols)
@@ -252,7 +385,7 @@ cyclesServer <- function(
           cols = NULL
         }
         
-        cycles_long() %>%
+        cycles_long_indiv() %>%
           filter(
             mouseID == input$selectedMouse
           ) %>%
@@ -266,88 +399,268 @@ cyclesServer <- function(
           )
       })
       
-      output$selImages <- renderUI({
-        req(Cycles_off, input$selectedMouse, selectedMouseFiles())
-        
-        image_output_list <-
-          # lapply(1:nrow(selectedMouseFiles()),
-          lapply(1:length(selectedMouseFiles()),
-                 function(i)
-                 {
-                   fileName <- paste0("name", i)
-                   stageName <- paste0("stage", i)
-                   imagename <- paste0("image", i)
-                   tags$div(
-                     class = "col-sm-3",
-                     textOutput(session$ns(fileName), container = h4),
-                     textOutput(session$ns(stageName), container = p),
-                     imageOutput(session$ns(imagename), height = "auto") # auto fixes the overlap
-                   )
-                 })
-        
-        
-        div(
-          class = "container-fluid",
-          div(
-            class = "row",
-            do.call(tagList, image_output_list)
-          )
-        )
+      ## Images UI -------------------------------
+      
+      ### Build UI -------------------------------
+      # Clear the image UI when a new mouse is selected
+      observeEvent(
+        c(
+          input$selectedMouse
+        ),
+        {
+          output$selImages <- renderUI({p("Press the button above to show the cycling images")})
+        })
+      
+      # Update the selectedMouseFiles, only when button is pressed
+      selectedMouseFiles <-
+        eventReactive(
+          input$makeImgDiv
+          ,
+          {
+            # reactive({
+            req(cyclesDF, input$selectedMouse)
+            
+            cycleID <- cyclesDF$cycleID[which(cyclesDF$mouseID == input$selectedMouse)]
+            
+            if(! length(cycleID) == 0){
+              idText <- sprintf("%04d", as.integer(cycleID))
+              
+              fileEnding <- paste0("*", idText, ".jpg")
+              
+              files <- dir_ls(
+                normalizePath(cycleDir),
+                all = TRUE,
+                recurse = TRUE,
+                type = "any",
+                glob = fileEnding
+              )
+              sortOrder <- files %>% path_file() %>% order()
+              files <- files[sortOrder]
+              return(
+                files
+              )
+            } else{
+              return(
+                NULL
+              )
+            }
+          })
+      
+      # When the button is pressed, make the new UI for the images
+      observeEvent(
+        input$makeImgDiv,
+        {
+          output$selImages <- renderUI({
+            req(cycles_long(), input$selectedMouse, selectedMouseFiles())
+            
+            imgsPerRow <- input$imgsPerRow
+            divCols <- case_when(
+              imgsPerRow == 1 ~ "12",
+              imgsPerRow == 2 ~ "6",
+              imgsPerRow == 3 ~ "4",
+              imgsPerRow == 4 ~ "3",
+              imgsPerRow == 6 ~ "2"
+            )
+            
+            if(!is.null(input$selectedMouse)){
+              image_output_list <-
+                lapply(
+                  1:length(selectedMouseFiles()),
+                  function(i)
+                  {
+                    imagename <- paste0("image", i)
+                    
+                    thisFileName <- selectedMouseFiles()[i] %>%
+                      path_file() %>%
+                      path_ext_remove()
+                    
+                    fileDate <- str_extract(thisFileName, "^20[0-2][0-9][-_]((0[1-9])|(1[0-2]))[-_](0[1-9]|[1-2][0-9]|3[0-1])")
+                    
+                    if(!is.na(fileDate)){
+                      df <- cycles_long() %>%
+                        filter(
+                          mouseID == input$selectedMouse,
+                          cycleDate == as_date(fileDate)
+                        )
+                      
+                      thisStage <- df$stage[1]
+                      
+                      thisStageName <- case_when(
+                        thisStage == 1 ~ "estrus",
+                        thisStage == 2 ~ "diestrus",
+                        thisStage == 3 ~ "proestrus",
+                        TRUE ~ "no stage scored"
+                      )
+                    } else {
+                      thisStageName <- "no date found in title"
+                    }
+                    
+                    tags$div(
+                      class = paste0("col-xs-", divCols),# "col-xs-6 col-sm-4 col-md-3", # "col-sm-3",
+                      h4(thisFileName),
+                      p(thisStageName),
+                      imageOutput(session$ns(imagename), height = "auto") %>% # auto fixes the overlap
+                        tagAppendAttributes(class = 'myImages')
+                    )
+                  })
+              
+              thisUI <- div(
+                class = "container-fluid",
+                div(
+                  class = "row",
+                  p("The images take longer to load than the text. Please be patient"),
+                  do.call(tagList, image_output_list)
+                )
+              )
+            }
+            return(thisUI)
+          })
+        })
+      
+      
+      ### Fill UI -------------
+      observeEvent(
+        input$makeImgDiv,
+        {
+          req(cyclesDF, input$selectedMouse, selectedMouseFiles())
+          
+          # Number of images within directory
+          numImgs <- length(selectedMouseFiles())
+          
+          for (i in 1:numImgs)
+          {
+            local({
+              my_i <- i
+              imagename <- paste0("image", my_i)
+              output[[imagename]] <-
+                renderImage({
+                  list(src = selectedMouseFiles()[my_i],
+                       width = "100%",
+                       height = "auto",
+                       alt = "Image failed to render")
+                }, deleteFile = FALSE)
+            })
+          }
+        })
+      
+      ## Powerpoint Output --------------------
+      individualPPT <- reactive({
+        req(input$imgsPerSlide) # To get to reset when this changes
+        ppt <- read_pptx("estrousCycleTemplate.pptx")
+        ppt <- add_slide(ppt, layout = "Title Slide")
+        ppt <- ph_with(x = ppt, value = input$selectedMouse, location = ph_location_label("Title 1"))
       })
       
-      observe({
-        req(Cycles_off, input$selectedMouse, selectedMouseFiles())
-        # if(is.null(selectedMouseFiles())) return(NULL)
-        for (i in 1:length(selectedMouseFiles()))
-        {
-          # print(i)
-          local({
-            my_i <- i
-            imagename <- paste0("image", my_i)
-            stageName <- paste0("stage", my_i)
-            fileName <- paste0("name", my_i)
-            outputWidth <- paste0("output_", imagename, "_width")
-            outputHeight <- paste0("output_", imagename, "_height")
-            # print(imagename)
+      output$downloadMousePPT <- downloadHandler(
+        filename = function() {
+          paste0("cycleImgs_", input$selectedMouse, "-", Sys.Date(), ".pptx")
+        },
+        content = function(file) {
+          
+          # Redo selected files here, because not updating appropriately
+          cycleID <- cyclesDF$cycleID[which(cyclesDF$mouseID == input$selectedMouse)]
+          
+          if(! length(cycleID) == 0){
+            idText <- sprintf("%04d", as.integer(cycleID))
             
-            thisFileName <- selectedMouseFiles()[my_i] %>%
+            fileEnding <- paste0("*", idText, ".jpg")
+            
+            files <- dir_ls(
+              normalizePath(cycleDir),
+              all = TRUE,
+              recurse = TRUE,
+              type = "any",
+              glob = fileEnding
+            )
+            sortOrder <- files %>% path_file() %>% order()
+            files <- files[sortOrder]
+          } else{
+            files <- NULL
+          }
+          
+          # Number of images within directory
+          numImgs <- length(files)
+          
+          # First index
+          iImg <- 1
+          # print("reset iImg")
+          
+          cyclePPT <- individualPPT()
+          
+          for (i in 1:numImgs)
+          {
+            thisFileName <- files[i] %>%
               path_file() %>%
               path_ext_remove()
             
-            output[[fileName]] <- renderText({
-              thisFileName
-            })
-            
-            # fileDate <- gsub("^20[0-2][0-9]-((0[1-9])|(1[0-2]))-([0-2][1-9]|3[0-1])", "", thisFileName)
             fileDate <- str_extract(thisFileName, "^20[0-2][0-9]-((0[1-9])|(1[0-2]))-(0[1-9]|[1-2][0-9]|3[0-1])")
             
-            output[[stageName]] <- renderText({
+            if(!is.na(fileDate)){
               df <- cycles_long() %>%
                 filter(
                   mouseID == input$selectedMouse,
                   cycleDate == as_date(fileDate)
                 )
+              
               thisStage <- df$stage[1]
+              
               thisStageName <- case_when(
                 thisStage == 1 ~ "estrus",
                 thisStage == 2 ~ "diestrus",
                 thisStage == 3 ~ "proestrus",
                 TRUE ~ "no stage scored"
-                
               )
-              return(thisStageName)
-            })
+            } else {
+              thisStageName <- "no date found in title"
+            }
             
-            output[[imagename]] <-
-              renderImage({
-                list(src = selectedMouseFiles()[my_i],
-                     width = "100%",
-                     height = "auto",
-                     alt = "Image failed to render")
-              }, deleteFile = FALSE)
-          })
+            img <- external_img(files[i], width = 2.68, heigh = 2.14) # get the image
+            textID <- paste0("text", iImg)
+            stageID <- paste0("stage", iImg)
+            imgID <- paste0("img", iImg)
+            
+            # If img index is 1, add a new slide
+            if(iImg == 1){
+              slideLayout <- paste0("estrousCycle", input$imgsPerSlide)
+              cyclePPT <- add_slide(x = cyclePPT, layout = slideLayout)
+            }
+            
+            # add the title
+            cyclePPT <- ph_with(
+              x = cyclePPT, value = thisFileName,
+              location = ph_location_label(
+                textID
+              ),
+              use_loc_size = TRUE)
+            
+            # add the title
+            cyclePPT <- ph_with(
+              x = cyclePPT, value = thisStageName,
+              location = ph_location_label(
+                stageID
+              ),
+              use_loc_size = TRUE)
+            
+            # add the image
+            cyclePPT <- ph_with(
+              x = cyclePPT, value = img,
+              location = ph_location_label(
+                imgID
+              ),
+              use_loc_size = TRUE)
+            
+            
+            # if index is less than the number per slide, add one, otherwise, restart at 1
+            if(iImg < as.numeric(input$imgsPerSlide)) {
+              iImg <- iImg + 1
+            } else {
+              iImg <- 1
+            }
+          }
+          
+          print(individualPPT(), target = file)
         }
-      })
+      )
       
     }
   )
