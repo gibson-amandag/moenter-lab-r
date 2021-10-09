@@ -33,10 +33,7 @@ uploadCyclesUI <- function(id){
         "View Images",
         folderImgsUI(ns("folderImgs"))
       )
-    ),
-    checkboxGroupInput(ns('in1'), 'Check some letters', choices = head(LETTERS)),
-    selectizeInput(ns('in2'), 'Select a state', choices = state.name),
-    plotOutput(ns("test"))
+    )
   )
 }
 
