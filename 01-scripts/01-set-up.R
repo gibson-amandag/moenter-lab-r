@@ -72,37 +72,78 @@ if(! length(fonts()) > 0){
   loadfonts(dev="pdf")
 }
 
-# READ ENVIRONMENT --------------------------------------------------------
 
-readRenviron("./.Renviron") #read the .Renviron document from the project root folder
 dateToday <- Sys.Date()
 
-# DEFINE OUTPUT OPTIONS ---------------------------------------------------
+# READ ENVIRONMENT --------------------------------------------------------
+if(file_access("./.Renviron")){ # if .Renviron exists
+  readRenviron("./.Renviron") #read the .Renviron document from the project root folder
+  
+  # DEFINE OUTPUT OPTIONS ---------------------------------------------------
+  
+  # This gets prepended to file names when saving
+  filePrefix <- Sys.getenv("FILE_PREFIX")
+  
+  # type of images to save for plots. 
+  # .png, .svg, or .pdf, for example
+  imgTypePlots <- Sys.getenv("PLOT_OUTPUT_FORMAT")
+  
+  # save individual plot files?
+  savePlots <- Sys.getenv("SAVE_PLOTS")
+  
+  # format specTreatment and treatment for PNA groups
+  usePNAgroups <- Sys.getenv("USE_PNA_GROUPS")
+  
+  ## Data Paths ------------------------------------------------------------
+  
+  # Define in your own .Renviron file
+  dataFolder <- Sys.getenv("DATA_FOLDER")
+  
+  ## Output Paths ----------------------------------------------------------
+  
+  # Define in your own .Renviron file
+  outputFolder <- Sys.getenv("OUTPUT_FOLDER")
+  
+  # EXCEL FILE -------------------------------------------------------
+  
+  excelFileName <- Sys.getenv("EXCEL_FILE_NAME")
+  
+  currentCompType <- Sys.getenv("COMP_TYPE")
+} else {
+  print("Note: No .Renviron found. If you are reading or saving files outside of RShiny file pickers, copy and edit the Renviron.example file")
+  
+  # Give defaults if no .Renviron
+  
+  filePrefix <- NULL
+  
+  # type of images to save for plots. 
+  # .png, .svg, or .pdf, for example
+  imgTypePlots <- ".pdf"
+  
+  # save individual plot files?
+  savePlots <- FALSE
+  
+  # format specTreatment and treatment for PNA groups
+  usePNAgroups <- FALSE
+  
+  ## Data Paths ------------------------------------------------------------
+  
+  # Define in your own .Renviron file
+  dataFolder <- "./data"
+  
+  ## Output Paths ----------------------------------------------------------
+  
+  # Define in your own .Renviron file
+  outputFolder <- "./output"
+  
+  # EXCEL FILE -------------------------------------------------------
+  
+  excelFileName <- "excel-demo.xlsx"
+  
+  currentCompType <- "windows"
+}
 
-# This gets prepended to file names when saving
-filePrefix <- Sys.getenv("FILE_PREFIX")
-
-# type of images to save for plots. 
-# .png, .svg, or .pdf, for example
-imgTypePlots <- Sys.getenv("PLOT_OUTPUT_FORMAT")
-
-# save individual plot files?
-savePlots <- Sys.getenv("SAVE_PLOTS")
-
-# format specTreatment and treatment for PNA groups
-usePNAgroups <- Sys.getenv("USE_PNA_GROUPS")
-
-## Data Paths ------------------------------------------------------------
-
-# Define in your own .Renviron file
-dataFolder <- Sys.getenv("DATA_FOLDER")
 burstOutputFolder <- file.path(dataFolder, "burst-output")
-
-## Output Paths ----------------------------------------------------------
-
-# Define in your own .Renviron file
-outputFolder <- Sys.getenv("OUTPUT_FOLDER")
-
 dataOutputFolder <- file.path(outputFolder, "data")
 plotOutputFolder <- file.path(outputFolder, "plots")
 reportOutputFolder <- file.path(outputFolder, "reports")
@@ -125,8 +166,5 @@ functionFiles <- list.files(
 )
 sapply(functionFiles, source)
 
-# EXCEL FILE -------------------------------------------------------
-
-excelFileName <- Sys.getenv("EXCEL_FILE_NAME")
 excelFilePath <- file.path(dataFolder, excelFileName)
 

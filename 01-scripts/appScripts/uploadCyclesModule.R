@@ -18,7 +18,8 @@ uploadCyclesUI <- function(id){
               ns("dataFile"),
               label = "Select Excel File",
               accept = ".xlsx"
-            )
+            ),
+            textOutput(ns("fileStatus"))
           ),
           div(
             class = "col-xs-6",
@@ -32,7 +33,10 @@ uploadCyclesUI <- function(id){
         "View Images",
         folderImgsUI(ns("folderImgs"))
       )
-    )
+    ),
+    checkboxGroupInput(ns('in1'), 'Check some letters', choices = head(LETTERS)),
+    selectizeInput(ns('in2'), 'Select a state', choices = state.name),
+    plotOutput(ns("test"))
   )
 }
 
@@ -48,28 +52,28 @@ uploadCyclesServer <- function(
       
       # Prepare Dataframes ------------------------------------------------------
       cycleDir <- reactive({
-        req(input$dataFile)
+        req(input$dataFile$datapath %>% path_ext() == "xlsx")
         fileInfo <- loadExcelSheet_fromFile(input$dataFile$datapath, "fileInfo")
         cycleDir <- fileInfo$cycleImgFolder[1]
         cycleDir <- normalizePath(cycleDir)
         return(cycleDir)
       })
-      
+
       damInfo <- reactive({
-        req(input$dataFile)
+        req(input$dataFile$datapath %>% path_ext() == "xlsx")
         loadExcelSheet_fromFile(input$dataFile$datapath, "DamInfo")
       })
       offspringInfo <- reactive({
-        req(input$dataFile)
+        req(input$dataFile$datapath %>% path_ext() == "xlsx")
         loadExcelSheet_fromFile(input$dataFile$datapath, "OffspringInfo")
       })
       cycles <- reactive({
-        req(input$dataFile)
+        req(input$dataFile$datapath %>% path_ext() == "xlsx")
         loadExcelSheet_fromFile(input$dataFile$datapath, "Cycles_off")
       })
-      
+
       cycles_react <- reactive({
-        req(input$dataFile)
+        req(input$dataFile$datapath %>% path_ext() == "xlsx")
         df <- cycles() %>%
           left_join(
             offspringInfo(),
@@ -81,9 +85,9 @@ uploadCyclesServer <- function(
           )
         return(df)
       })
-      
+
       observe({
-        req(input$dataFile)
+        req(input$dataFile$datapath %>% path_ext() == "xlsx")
         cyclesServer(
           "cycles",
           cycleDir(),
@@ -92,6 +96,15 @@ uploadCyclesServer <- function(
           cycles_react(),
           compType
         )
+      })
+
+      output$fileStatus <- renderText({
+        req(input$dataFile)
+        ext <- input$dataFile$datapath %>% path_ext()
+        validate(
+          need(ext == "xlsx", "Please upload an xlsx file")
+          )
+
       })
       
     }

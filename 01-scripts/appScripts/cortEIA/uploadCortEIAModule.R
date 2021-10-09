@@ -13,7 +13,8 @@ uploadCortEIAUI <- function(id){
           ns("dataFile"),
           label = "Select CSV File",
           accept = ".csv"
-        )
+        ),
+        textOutput(ns("fileStatus")),
       ),
       div(
         class = "col-xs-6",
@@ -35,13 +36,22 @@ uploadCortEIAServer <- function(
     id,
     function(input, output, session) {
       observe({
-        req(input$dataFile)
+        req(input$dataFile$datapath %>% path_ext() == "csv")
         cortEIAServer(
           "cortEIA",
           input$dataFile$datapath,
           input$dataFile$name,
           compType
         )
+      })
+      
+      output$fileStatus <- renderText({
+        req(input$dataFile)
+        ext <- input$dataFile$datapath %>% path_ext()
+        validate(
+          need(ext == "csv", "Please upload a csv file")
+        )
+        
       })
       
     }

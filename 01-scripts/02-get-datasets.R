@@ -1,3 +1,4 @@
+if(file_access(excelFilePath) & path_ext(excelFileName) == "xlsx"){
 # Load Excel Sheets -------------------------------------------------------
 
 mouseInfo <- loadExcelSheet(dataFolder, excelFileName, "mouseInfo")
@@ -48,4 +49,4 @@ maturationData <- maturationData %>%
   formatMouseID() %>%
   addMouseInfoToDataset() %>%
   setUpMaturation()
-
+}

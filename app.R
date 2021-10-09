@@ -68,7 +68,7 @@ ui <- navbarPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-    uploadCyclesServer("uploadCycles")
+    uploadCyclesServer("uploadCycles", compType = currentCompType)
     uploadCortEIAServer("cortEIA", compType = currentCompType)
 }
 
