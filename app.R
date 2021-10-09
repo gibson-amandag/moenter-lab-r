@@ -27,7 +27,41 @@ ui <- navbarPage(
     "Moenter Lab",
     tabPanel(
         "Cycles",
+        tags$body(
+            # Note the wrapping of the string in HTML()
+            tags$style( # This keeps the nav bar as a single line instead of wasting space with each panel as a line on small screen
+                HTML("
+                    .navbar-header, .navbar-nav, .navbar-nav>li {
+                        float: left;
+                    }
+                    
+                    .navbar-nav{
+                        margin: 0px
+                    }
+                    
+                    .navbar-nav>li>a {
+                        padding-top: 15px;
+                        padding-bottom: 15px;
+                    }
+                    
+                    .container-fluid>.navbar-collapse, .container-fluid>.navbar-header, .container>.navbar-collapse, .container>.navbar-header{
+                        margin-right: 0;
+                        margin-left: 0;
+                    }
+                    
+                     .navbar>.container .navbar-brand, .navbar>.container-fluid .navbar-brand {
+                        margin-left: -15px;
+                    }
+                     ")
+            )
+        ),
         uploadCyclesUI("uploadCycles")
+    ),
+    tabPanel(
+        "Cort EIA",
+        uploadCortEIAUI(
+            "cortEIA"
+        )
     )
     
 )
@@ -35,6 +69,7 @@ ui <- navbarPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     uploadCyclesServer("uploadCycles")
+    uploadCortEIAServer("cortEIA", compType = currentCompType)
 }
 
 # Run the application 

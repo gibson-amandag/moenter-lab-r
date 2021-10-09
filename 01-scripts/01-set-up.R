@@ -18,11 +18,16 @@ if(!require(remotes)) install.packages('remotes')
 if(!require(fs)) install.packages('fs') # with tidyverse?
 if(!require(DT)) install.packages('DT')
 if(!require(Cairo)) install.packages('Cairo')
+if (!require(MASS)) install.packages('MASS')
+if (!require(drc)) install.packages('drc')
+if(!require(shinyjs)) install.packages('shinyjs')
 if(!require(colourpicker)) install.packages('colourpicker')
-if(!require(shinyFiles)) install.packages('shinyFiles')
+if(!require(plater)) install.packages('plater')
 
 
 #### Load Libraries ##############################
+library(MASS)
+library(drc)
 library(tidyverse)
 library(rlang)
 library(scales)
@@ -42,7 +47,10 @@ library(flextable)
 library(fs)
 library(DT)
 library(Cairo)
+library(shinyjs)
 library(colourpicker)
+library(plater)
+select <- dplyr::select
 # Save a PDF - in ggsave, device = cairo_pdf on Windows
 # https://r-graphics.org/recipe-output-fonts-pdf - even when following these
 # steps (downloaded Ghostscript, added to environment, embedded fonts), the
