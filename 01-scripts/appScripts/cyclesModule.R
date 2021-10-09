@@ -275,7 +275,7 @@ cyclesServer <- function(
           do.call(what = "updateColourInput",
                   args = list(
                     session = session,
-                    inputId = paste0("col", lev[i]),
+                    inputId = paste0("col", i),
                     value = cols[i]
                   )
           )
