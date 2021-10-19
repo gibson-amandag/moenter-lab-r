@@ -34,6 +34,20 @@ cortEIAUI <- function(id){
     
     fluidRow(
       div(
+        class = "col-xs-4",
+        radioButtons(
+          ns("modelType"),
+          "Model Type",
+          choices = c(
+            "4 parameter logarithmic" = "4PLC",
+            "linear" = "linear"
+          )
+        )
+      )
+    ),
+    
+    fluidRow(
+      div(
         class = "col-sm-4",
         downloadButton(ns("downloadResults"), "Download Results in Excel"),
       ),
@@ -241,6 +255,8 @@ cortEIAServer <- function(
       library(plater)
       library(shinyjs)
       
+      modelType <- input$modelType
+      
       getMeanCVfromReplicates <- function(assayPlate, colToSum = netOD) {
         summarizedPlate <- assayPlate %>%
           group_by(plateID) %>%
@@ -312,17 +328,27 @@ cortEIAServer <- function(
       
       # Standard Curve Model
       stdCurve <- reactive({
-        stdCurve <- drm(
-          percBinding ~ stdPgPerWell, 
-          data = standards_included(), 
-          fct = LL.4()
-        )
+        if(modelType == "4PLC"){
+          stdCurve <- drm(
+            percBinding ~ stdPgPerWell, 
+            data = standards_included(), 
+            fct = LL.4()
+          )
+        } else {
+          stdCurve <- lm(
+            percBinding ~ log10(stdPgPerWell),
+            data = standards_included()
+          )
+        }
         return(stdCurve)
       })
       
       # Sample Estimates
       assayPlate_concEstimates <- reactive({
-        df <- assayPlate_percBinding() %>%
+        df <- assayPlate_percBinding()
+        
+        if(modelType == "4PLC"){
+          df <- df %>%
           rowwise()%>%
           mutate(
             pgPerWell = ifelse(
@@ -333,7 +359,31 @@ cortEIAServer <- function(
                 ED(stdCurve(), percBinding, type="absolute", display=F)[1,1],
                 NA
               )
-            ),
+            )
+          )
+        } else {
+          df <- df %>%
+            rowwise() %>%
+            mutate(
+              logPgPerWell = ifelse(
+                type == "STD",
+                log10(stdPgPerWell),
+                ifelse(
+                  type == "QC" | type == "sample",
+                  (percBinding - coef(stdCurve())[[1]]) / coef(stdCurve())[[2]],
+                  NA
+                )
+              ),
+              pgPerWell = ifelse(
+                is.na(logPgPerWell),
+                NA,
+                10^logPgPerWell
+              )
+            )
+        }
+        df <- df %>%
+          rowwise() %>%
+          mutate(
             pgPer_mL = ifelse(is.na(pgPerWell), NA, pgPerWell / volPerWell),
             ngPer_mL = ifelse(is.na(pgPer_mL), NA, pgPer_mL / 1000),
             sampleConc_ngPer_mL = ifelse(is.na(ngPer_mL), NA, ngPer_mL * dilutionFactor)
@@ -846,14 +896,26 @@ cortEIAServer <- function(
           ) + 
           geom_point(color = "blue") + 
           stat_summary(fun = mean, na.rm = TRUE, color = "red") +
-          geom_smooth(method = drm, formula = y ~ x, method.args = list(fct = L.4()), se = FALSE, color = "darkgrey") +
-          scale_x_log10() +
           labs(
             x = "cort (pg/well)",
             y = "% B/B0"
           ) +
           textTheme(size = 16) +
-          boxTheme()
+          boxTheme() +
+          scale_x_log10()
+        
+        if(modelType == "4PLC"){
+          viz <- viz + 
+            geom_smooth(method = drm, formula = y ~ x, method.args = list(fct = L.4()), se = FALSE, color = "darkgrey")
+        } else {
+          viz <- viz +
+            geom_smooth(
+              method = lm,
+              # formula = y ~ log10(x),
+              formula = y ~ x,
+              se = FALSE, color = "darkgrey")
+        }
+          
         
         return(viz)
       })

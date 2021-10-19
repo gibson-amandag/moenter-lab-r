@@ -58,6 +58,21 @@ saveDFsToExcel <- function(
   saveWorkbook(wb, filePath, overwrite = TRUE)
 }
 
+saveDFsToExcel_shiny <- function(
+  filePath,
+  ... # use sheetName = df, sheetName2 = df2, sheetName3 = df3 for each df you want to add to a new sheet
+){
+  dfList <- list(...)
+  
+  wb <- createWorkbook()
+  
+  for(sheetName in names(dfList)){
+    writeToWorkbook(sheetName, dfList[[sheetName]], wb)
+  }
+  
+  saveWorkbook(wb, filePath, overwrite = TRUE)
+}
+
 greenFill <- function(){
   createStyle(bgFill = "#C6EFCE")
 }
