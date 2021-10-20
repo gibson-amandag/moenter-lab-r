@@ -1,0 +1,175 @@
+```{css echo=FALSE}
+.plateTable, .plateTable th, .plateTable td {
+  border: 1px solid black;
+}
+
+.plateTable {border-collapse: collapse}
+
+.plateWell.NSB{color:purple}
+.plateWell.STD{color:blue}
+.plateWell.QC{color:green}
+.plateWell.bufferCtrl{color:red}
+.plateWell.sample{color:black}
+
+.plateTable tr:nth-child(4n + 3) td,
+.plateTable tr:nth-child(4n + 4) td {
+    background-color: #E8E8E8;
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+# options(digits=3)
+```
+
+
+```{r include=FALSE}
+if(tinytex::is_tinytex() == FALSE){
+  print("Instaling tinytex for pdf documents")
+  tinytex::install_tinytex()
+}
+doc.type <- input$format
+```
+
+# Results
+```{r}
+meanSampleResults()%>%
+  mutate(
+    across(
+      c(
+        "cort",
+        "cortCV"
+      ),
+      ~ round(.x, 3)
+    )
+  )
+```
+
+# The Plate 
+```{r}
+view_plate(
+    assayPlate(),
+    well_ids_column = "wells",
+    columns_to_display = c("plateID")
+  )[[1]]
+```
+
+
+# Buffer Control
+
+The mean net OD for buffer control wells was `r bufferCtrlOD()`
+
+```{r echo=FALSE}
+assayPlate()%>%
+  filter(
+    type == "bufferCtrl"
+  ) %>%
+  select(
+    wells, plateID, netOD
+  )
+```
+
+# Percent Binding
+
+This is the percent binding of each well relative to the buffer control mean net OD
+
+```{r}
+percBindingTableDiv()
+```
+
+
+```{r}
+if(doc.type != "HTML"){
+  view_plate(
+    assayPlate_percBinding() %>% mutate(percBinding = round(percBinding, 2)),
+    well_ids_column = "wells",
+    columns_to_display = c("percBinding")
+  )[[1]]
+}
+```
+
+
+# Standard Curve
+
+## Curve type: `r modelType` 
+
+The included standards were: 
+
+```{r}
+standards_included()
+```
+
+The net OD values with means and CVs for standards were:
+
+```{r}
+assayPlate_indPlusMean_netOD() %>%
+  filter(type == "STD")
+```
+
+
+```{r}
+stdCurvePlot()
+```
+
+The coefficients for the model are
+
+```{r}
+stdCurve()$coefficients
+```
+
+# Calculations
+
+Using the curve we calculated above, we can now estimate the amount of corticosterone that was in each well.
+From the pg/well, we can calculate the concentration (in pg/mL) of the sample + assay buffer dilution if we know the volume added to the well: *pg/well \* volPerWell*
+From the pg/mL concentration, we can convert to ng/mL: *pg/mL / 1000*
+Finally, using the dilution factor of the original serum sample in the assay buffer, we can calculate the corticosterone concentration of the original serum sample: *ng/mL \* dilutionFactor*
+
+```{r}
+calcPlateDiv()
+```
+
+## On STD curve
+```{r}
+samplesOnStdCurvePlot()
+```
+
+### Quality control
+```{r}
+stdCurvePlot() +
+  geom_point(data = samplesEst() %>% filter(type == "QC"), size = 2.5)
+```
+
+`r if(doc.type == "HTML") "## Table"`
+
+```{r}
+comboPlate()
+```
+
+
+```{r}
+if(doc.type == "HTML"){
+  assayPlate_concEstimates_meanCV() %>%
+      relocate(
+        netOD,
+        .after = time
+      ) %>%
+    mutate(
+      across(
+        c(
+          "cortMean",
+          "cortCV",
+          "percBinding",
+          "pgPerWell",
+          "pgPer_mL",
+          "ngPer_mL",
+          "sampleConc_ngPer_mL"
+        ),
+        ~ round(.x, 3)
+      )
+    )
+}
+```
+
+
+
+
