@@ -179,15 +179,17 @@ cyclesServer <- function(
         df <- cyclesDF %>%
           makeCyclesLong(afterVar = cycleStartDate) %>%
           addPNDForCyles()
-        minDay <- min(df$day, na.rm = TRUE)
-        maxDay <- max(df$day, na.rm = TRUE)
-        updateSliderInput(
-          session = session,
-          "cycleDays",
-          min = minDay,
-          max = maxDay,
-          value = c(minDay, maxDay)
-        )
+        if(length(df$day)>0){
+          minDay <- min(df$day, na.rm = TRUE)
+          maxDay <- max(df$day, na.rm = TRUE)
+          updateSliderInput(
+            session = session,
+            "cycleDays",
+            min = minDay,
+            max = maxDay,
+            value = c(minDay, maxDay)
+          )
+        }
       })
       
       # Long-form cycles dataframe. Filters by day selection + groupingVar levels
