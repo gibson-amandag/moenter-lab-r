@@ -19,7 +19,7 @@ mouseInfo <- mouseInfo %>%
 mouseRecording <- mouseRecording %>%
   formatMouseRecording() %>%
   addMouseInfoToDataset() %>%
-  addAgeColumn(ageAtCol = recordingDate) %>%
+  addAgeColumn(ageAtCol = recordingDate, dobAsDay = DOB_equals) %>%
   addTreatByAgeCol()
 
 cellTiming <- cellTiming %>%

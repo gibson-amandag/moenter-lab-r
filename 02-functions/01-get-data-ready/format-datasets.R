@@ -286,14 +286,14 @@ addAgeColumn <- function(
   ageAtCol,
   addAgeGroup = TRUE,
   dobCol = dateOfBirth,
-  dobAsDay = 0
+  dobAsDay = 0 # this still works to provide a single number, though
 ){
   df <- df %>%
     mutate(
       age = as.numeric(
         difftime({{ ageAtCol }}, {{ dobCol }}, 
                  units = c("days"))
-        ) + dobAsDay
+        ) + {{ dobAsDay }} # added to be able to specify with a column, 2021-12-06
     )
   
   if(addAgeGroup == TRUE){
