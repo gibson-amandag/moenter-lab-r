@@ -19,8 +19,9 @@ mouseInfo <- mouseInfo %>%
 mouseRecording <- mouseRecording %>%
   formatMouseRecording() %>%
   addMouseInfoToDataset() %>%
-  addAgeColumn(ageAtCol = recordingDate, dobAsDay = DOB_equals) %>%
-  addTreatByAgeCol()
+  addAgeColumn(ageAtCol = recordingDate, dobAsDay = DOB_equals, ageName = "ageAtRecording") %>%
+  addTreatByAgeCol() %>%
+  addMouseNumber() # order mice of same sex and from same dam  with same birth day (theoretically from a litter)
 
 cellTiming <- cellTiming %>%
   formatCellID()

@@ -41,7 +41,8 @@ changeYNtoTF <- function(x){
     x == "Y" ~ TRUE,
     x == "N" ~ FALSE,
     x == TRUE ~ TRUE,
-    x == FALSE ~ FALSE
+    x == FALSE ~ FALSE,
+    TRUE ~ as.logical(x)
   )
   return(val)
 }
@@ -86,7 +87,10 @@ formatMouseInfo <- function (mouseInfo, formatPNA_treat = usePNAgroups){
           specTreatment,
           treatment,
           sex,
-          zygosity
+          zygosity,
+          strain,
+          gonadStatus,
+          implantType
         ),
         as.factor
       )
@@ -107,6 +111,42 @@ formatMouseInfo <- function (mouseInfo, formatPNA_treat = usePNAgroups){
       formatPNAgroups()
   }
   return(mouseInfo)
+}
+
+addMouseNumber <- function(
+  df
+){
+  df <- df %>% 
+    arrange(
+      recordingDate
+    )%>%
+    group_by(
+      damID,
+      dateOfBirth,
+      sex
+    ) %>%
+    mutate(
+      mouseNum = as_factor(row_number())
+    ) %>%
+    ungroup()
+  return(df)
+}
+
+addCellNumber <- function(
+  df
+){
+  df <- df %>% 
+    arrange(
+      recordStart
+    )%>%
+    group_by(
+      mouseID
+    ) %>%
+    mutate(
+      cellNum = as_factor(row_number())
+    ) %>%
+    ungroup()
+  return(df)
 }
 
 formatPNAgroups <- function(
@@ -138,8 +178,7 @@ formatMouseRecording <- function(mouseRecording) {
         c(
           mouseID,
           whoSliced,
-          cycleStage,
-          mouseNum
+          cycleStage
         ),
         as.factor
       )
@@ -156,7 +195,10 @@ formatMouseRecording <- function(mouseRecording) {
       )
     ) %>%
     select(
-      -c(daylightSavings, timeSac)
+      -c(daylightSavings
+         , timeSac
+         # , ageInDays
+         )
     )
   
   
@@ -171,8 +213,7 @@ formatCellInfo <- function(cellInfo){
           cellID,
           mouseID,
           whoRecorded,
-          status,
-          cellNum
+          status
         ),
         as.factor
       )
@@ -180,7 +221,9 @@ formatCellInfo <- function(cellInfo){
     mutate(
       across(where(is.factor), removeSpaces)
     ) %>%
-    select(
+    addCellNumber() %>%
+    addRecTimeHr() %>%
+    select( # Calculation done in excel, since it's stupid complicated here in R
       -c(daylightSavings, recordStart, recordEnd)
     )
   
@@ -284,13 +327,14 @@ addCellInfoToDataset <- function(
 addAgeColumn <- function(
   df, 
   ageAtCol,
+  ageName = "age",
   addAgeGroup = TRUE,
   dobCol = dateOfBirth,
   dobAsDay = 0 # this still works to provide a single number, though
 ){
   df <- df %>%
     mutate(
-      age = as.numeric(
+      age := as.numeric(
         difftime({{ ageAtCol }}, {{ dobCol }}, 
                  units = c("days"))
         ) + {{ dobAsDay }} # added to be able to specify with a column, 2021-12-06
@@ -308,6 +352,10 @@ addAgeColumn <- function(
         across(ageGroup, as.factor)
       )
   }
+  df <- df %>%
+    rename(
+      {{ ageName }} := age
+    )
   return(df)
 }
 
@@ -322,10 +370,25 @@ addTreatByAgeCol <- function(df) {
   return(df)
 }
 
+addRecTimeHr <- function(df){
+  df <- df %>%
+    mutate(
+      lightsOn = case_when(
+        daylightSavings == "N" ~ 3/24,
+        daylightSavings == "Y" ~ 4/24,
+      ),
+      recordStart_hr = (recordStart - lightsOn) * 24,
+      recordEnd_hr = (recordEnd - lightsOn) * 24,
+      .after = recordStart
+    ) %>%
+    select(-lightsOn)
+  return(df)
+}
+
 addRecTimeSinceSlice <- function(df){
   df <- df %>%
     mutate(
-      recTime_hrPostSac = recordStart_hr - sac_hr,
+      recTime_hrPostSac = recordStart_hr - sacHrs,
       .before = recordStart_hr
     ) %>%
     relocate(

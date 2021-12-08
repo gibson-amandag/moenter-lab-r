@@ -12,15 +12,12 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 ```
 
 
-```{r}
+```{r include=FALSE}
 # This script calls the libraries and sets up other variables that are necessary for analysis
 # You should also make sure to set up you .Renivron file - use the example as a template
-source("./01-scripts/set-up.R")
-```
-
-```{r}
+source("./01-scripts/01-set-up.R")
 # This script loads the data from the excel file and combines and formats the data
-source("./01-scripts/get-datasets.R")
+source("./01-scripts/02-get-datasets.R")
 ```
 
 ```{r eval=FALSE, include=FALSE}
@@ -47,6 +44,67 @@ cellInfo
 # Cell Firing Data - 1 min bins
 ```{r}
 cellBinnedFiring
+```
+
+# Baseline Burst and Firing DF
+
+```{r}
+baselineDF_fileName = "fileNameHere" # No .txt
+# burstOutputsFolder # can define this with .Renviron and/or 01-set-up
+
+baselineDF <- getBurstDF(
+  baselineDF_fileName,
+  burstOutputsFolder,
+  columnLabel = "base"
+)
+
+baselineDF
+```
+
+# Treatment Burst and Firing DF
+
+```{r}
+treatDF_fileName = "fileNameHere" # No .txt
+# burstOutputsFolder # can define this with .Renviron and/or 01-set-up
+
+treatDF <- getBurstDF(
+  treatDF_fileName,
+  burstFolder,
+  columnLabel = "treat"
+)
+
+treatDF
+```
+
+# Washout Burst and Firing DF
+
+```{r}
+washoutDF_fileName = "fileNameHere" # No .txt
+# burstOutputsFolder # can define this with .Renviron and/or 01-set-up
+
+washoutDF <- getBurstDF(
+  washoutDF_fileName,
+  burstOutputsFolder,
+  columnLabel = "wash"
+)
+
+washoutDF
+```
+
+```{r}
+cellInfo_withBursting <- cellInfo %>%
+  left_join(
+    baselineDF,
+    by="cellID"
+  ) %>%
+  left_join(
+    treatDF,
+    by = "cellID"
+  ) %>%
+  left_join(
+    washoutDF,
+    by = "cellID"
+  )
 ```
 
 

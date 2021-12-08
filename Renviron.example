@@ -12,6 +12,7 @@ OUTPUT_FOLDER="/path/output"
 # should be within the DATA_FOLDER 
 # use the excel-template file as the starting point to make sure that the
 # variable names match what the code is looking for
+# If you're using the cycles or cort EIA modules of 
 EXCEL_FILE_NAME="fileName.xlsx"
 
 # Will be prepended to plots when saving them to your computer

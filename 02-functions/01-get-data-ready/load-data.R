@@ -39,3 +39,81 @@ loadExcelSheet_fromFile = function(filePath, sheetName){
     na.strings = "NA"
   )
 }
+
+
+loadBurstData_addToDF <- function(
+  burstAnalysis_fileName, 
+  BurstOutputsFolder, 
+  demoDF,
+  columnLabel = NA
+){
+  fileName = paste0(burstAnalysis_fileName, ".txt")
+  
+  bParamsInit <- read.csv(file.path(BurstOutputsFolder, fileName), sep = "\t")
+  
+  # Add the demographic info to the burst params dataframe
+  bParamsOut <- combineBurstData(demoDF, bParamsInit, columnLabel)
+  bParamsDF <- bParamsOut$bParamsDF
+  
+  return(bParamsDF)
+}
+
+combineBurstData = function(fullDF, bParamsDF, columnLabel = NA){
+  bParamsDF <- as.data.frame(bParamsDF)
+  
+  if("cellName" %in% colnames(bParamsDF)){
+    bParamsDF <- bParamsDF %>% rename(cellID = cellName)
+  }
+  
+  if(!is.na(columnLabel)){
+    bParamsDF <- bParamsDF %>%
+      rename_with(
+        ~ paste0((.), "_", columnLabel),
+        .cols = -cellID
+      )
+  }
+  
+  bParamsDF <- bParamsDF %>%
+    left_join(
+      fullDF,
+      by = "cellID"
+    ) 
+  
+  
+  my_list = list(
+    "bParamsDF" = bParamsDF
+  )
+  
+  return(my_list)
+}
+
+
+getBurstDF <- function(
+  burstAnalysis_fileName, 
+  BurstOutputsFolder,
+  columnLabel = NA
+){
+  fileName = paste0(burstAnalysis_fileName, ".txt")
+  
+  bParamsInit <- read.csv(file.path(BurstOutputsFolder, fileName), sep = "\t")
+  
+  bParamsDF <- as.data.frame(bParamsInit)
+  
+  if("cellName" %in% colnames(bParamsDF)){
+    bParamsDF <- bParamsDF %>% rename(cellID = cellName)
+  }
+  
+  if(!is.na(columnLabel)){
+    bParamsDF <- bParamsDF %>%
+      rename_with(
+        ~ paste0((.), "_", columnLabel),
+        .cols = -cellID
+      )
+  }
+  
+  return(bParamsDF)
+}
+
+
+
+
