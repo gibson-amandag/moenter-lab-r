@@ -1,0 +1,207 @@
+---
+title: "Extracellular Analysis"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+```
+
+
+```{r include=FALSE}
+# This script calls the libraries and sets up other variables that are necessary for analysis
+# You should also make sure to set up you .Renivron file - use the example as a template
+source("./01-scripts/01-set-up.R")
+# This script loads the data from the excel file and combines and formats the data
+source("./01-scripts/02-get-datasets.R")
+## Datasets generated
+  # mouseInfo
+  # mouseRecording
+  # cellInfo
+  # cellBinnedFiring
+  # cyclesData
+  # agdData
+  # maturationData
+```
+
+```{r}
+# Treatment epochs
+
+# To-do: fill in for you data
+treatmentInfo = list(
+  baseline = list(name = "baseline", 
+                  fileName = "FILL_ME_IN"),
+  treatment = list(name = "treatment", 
+                   fileName = "FILL_ME_IN"),
+  washout = list(name = "washout",
+                 fileName = "FILL_ME_IN")
+)
+
+# To-do: Provide the burst output folder path
+# simplest is file.path(dataFolder, "burstOutputsFolderName") if it's within 
+# your general data folder
+burstOutputsFolder = file.path(dataFolder, "FILL_ME_IN")
+```
+
+# Recorded Mice Information
+```{r}
+mouseRecording
+```
+
+# Cell Information
+```{r}
+cellInfo
+```
+
+# Cell Firing Data - 1 min bins
+```{r}
+cellBinnedFiring
+```
+
+
+```{r}
+# A list of labeled dataframes, 
+# columns names are just the parameter, 
+# without label of what treatment period it came from
+treatmentDFs_forLong <- lapply(
+  treatmentInfo,
+  readBurstDFs,
+  burstOutputsFolder,
+  addLabelToColNames = FALSE
+)
+
+
+# A list of labeled dataframes
+# Columns names have treatment period appended
+# Makes it easy to _join together for a wide dataframe
+treatmentDFs_forWide <- lapply(
+  treatmentInfo,
+  readBurstDFs,
+  burstOutputsFolder,
+  addLabelToColNames = TRUE
+)
+
+## To get the individual dataframes for each treatment period, use $trtName
+# Example: treatmentDFs_forLong$baseline
+```
+
+```{r}
+treatmentDFs_forWide
+```
+
+
+```{r}
+# first combine the wide burst parameter dfs into one
+allBurstDFs_wide <- treatmentDFs_forWide %>%
+  reduce(left_join, by = "cellID")
+
+cellInfo_withBursting <- cellInfo %>%
+  left_join(
+    allBurstDFs_wide,
+    by = "cellID"
+  )
+```
+
+```{r}
+# Combined dataframe with all data for a cell
+cellInfo_withBursting
+```
+
+
+```{r}
+# first combine the long burst parameter dfs into one
+allBurstDFs_long <- treatmentDFs_forLong %>%
+  bind_rows(
+    # This creates an addition column with the dataframe name as the value
+    # it's used to distinguish from which treatment period the row came from
+    .id = "epoch", 
+  )
+
+cellInfo_burstingLong <- cellInfo %>%
+  left_join(
+    allBurstDFs_long,
+    by = "cellID"
+  )
+```
+
+```{r eval=FALSE, include=FALSE}
+cellInfo_burstingLong
+```
+
+```{r}
+# Repeated Measured ANOVA, all cells get same treatment series
+
+RM_ANOVA_forBurstParams <- function(
+  df,
+  param
+){
+  anova <- df %>%
+    anova_test(
+      dv = {{ param }},
+      wid = cellID,
+      within = epoch
+    )
+  return(anova)
+}
+
+pairWise_forBurstParams <- function(
+  df,
+  param
+){
+  pwc <- df %>%
+    pairwise_t_test(
+      as.formula(paste(param, "epoch", sep = "~")),
+      paired = TRUE,
+      p.adjust.method = "bonferroni"
+    )
+  return(pwc)
+}
+
+params = list(
+  totalFreq = "tf"
+  ,burstNum = "bn" 
+  ,burstFreq = "bf"
+  ,spikesPerBurst = "spb"
+  ,burstDuration = "mbd"
+  ,singleSpikeNum = "ssn"
+  ,singleSpikeFreq = "ssf"
+  ,interEventInterval = "inter"
+  ,intraBurstInterval = "intra"
+)
+```
+
+
+```{r}
+# Run the RM anova and pairwise comparison for each burst parameter
+# Generates a list with the output
+burstANOVAs <- lapply(params, RM_ANOVA_forBurstParams, df = cellInfo_burstingLong)
+burstPairwiseComps <- lapply(params, pairWise_forBurstParams, df = cellInfo_burstingLong)
+
+# To look at an individual parameter
+# burstANOVAs$totalFreq
+```
+
+# Burst Comparisons
+## ANOVAS
+```{r}
+burstANOVAs
+```
+
+## Pairwise Comparisons
+```{r}
+burstPairwiseComps
+```
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

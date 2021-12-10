@@ -91,7 +91,7 @@ combineBurstData = function(fullDF, bParamsDF, columnLabel = NA){
 getBurstDF <- function(
   burstAnalysis_fileName, 
   BurstOutputsFolder,
-  columnLabel = NA
+  addLabelToColNames = NA
 ){
   fileName = paste0(burstAnalysis_fileName, ".txt")
   
@@ -103,10 +103,10 @@ getBurstDF <- function(
     bParamsDF <- bParamsDF %>% rename(cellID = cellName)
   }
   
-  if(!is.na(columnLabel)){
+  if(!is.na(addLabelToColNames)){
     bParamsDF <- bParamsDF %>%
       rename_with(
-        ~ paste0((.), "_", columnLabel),
+        ~ paste0((.), "_", addLabelToColNames),
         .cols = -cellID
       )
   }
@@ -114,6 +114,29 @@ getBurstDF <- function(
   return(bParamsDF)
 }
 
+readBurstDFs <- function(
+  treatmentInfo, # a list containing the fileName and name for the treatment epoch
+  burstOutputsFolder, # folder where igor txt output files are saved
+  addLabelToColNames = FALSE # if want to append _name to end of each column, for making wide
+){
+  fileName = treatmentInfo[["fileName"]]
+  name = treatmentInfo[["name"]]
+  
+  if(addLabelToColNames){
+    addLabelToColNames = name
+  } else {
+    addLabelToColNames = NA
+  }
+  
+  
+  bParamsDF = getBurstDF(
+    fileName,
+    burstOutputsFolder,
+    addLabelToColNames
+  )
+  
+  return(bParamsDF)
+}
 
 
 
