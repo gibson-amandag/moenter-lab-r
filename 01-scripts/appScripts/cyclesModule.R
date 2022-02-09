@@ -223,6 +223,9 @@ cyclesServer <- function(
           session,
           "groupingVar",
           data = cyclesDF %>%
+            mutate(
+              mouseID = as.factor(mouseID)
+            ) %>%
             select(where(~ is.character(.x) | is.factor(.x))) %>%
             relocate(
               mouseID,
