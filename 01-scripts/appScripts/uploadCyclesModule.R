@@ -14,6 +14,7 @@ uploadCyclesUI <- function(id){
         fluidRow(
           div(
             class = "col-xs-6",
+            shinyDirButton(ns("cycleDir"), "Select Cycle Image Folder", "Please select a folder"),
             fileInput(
               ns("dataFile"),
               label = "Select Excel File",
@@ -47,15 +48,14 @@ uploadCyclesServer <- function(
     function(input, output, session) {
       folderImgsServer("folderImgs")
       
-      # Prepare Dataframes ------------------------------------------------------
+      # Folder Picker -----------------------------------------------------------
+      shinyDirChoose(input, "cycleDir", roots = c(home = "~"), session = session)
       cycleDir <- reactive({
-        req(input$dataFile$datapath %>% path_ext() == "xlsx")
-        fileInfo <- loadExcelSheet_fromFile(input$dataFile$datapath, "fileInfo")
-        cycleDir <- fileInfo$cycleImgFolder[1]
-        cycleDir <- normalizePath(cycleDir)
-        return(cycleDir)
+        req(input$cycleDir)
+        parseDirPath(c(home = "~"), input$cycleDir)
       })
 
+      # Prepare Dataframes ------------------------------------------------------
       damInfo <- reactive({
         req(input$dataFile$datapath %>% path_ext() == "xlsx")
         loadExcelSheet_fromFile(input$dataFile$datapath, "DamInfo")
@@ -85,6 +85,7 @@ uploadCyclesServer <- function(
 
       observe({
         req(input$dataFile$datapath %>% path_ext() == "xlsx")
+        req(cycleDir())
         cyclesServer(
           "cycles",
           cycleDir(),
@@ -100,10 +101,8 @@ uploadCyclesServer <- function(
         ext <- input$dataFile$datapath %>% path_ext()
         validate(
           need(ext == "xlsx", "Please upload an xlsx file")
-          )
-
+        )
       })
-      
     }
   )
 }
