@@ -17,7 +17,7 @@ if (!require(flextable)) install.packages('flextable')
 if(!require(remotes)) install.packages('remotes')
 if(!require(fs)) install.packages('fs') # with tidyverse?
 if(!require(DT)) install.packages('DT')
-if(!require(Cairo)) install.packages('Cairo')
+# if(!require(Cairo)) install.packages('Cairo')
 if (!require(MASS)) install.packages('MASS')
 if (!require(drc)) install.packages('drc')
 if(!require(shinyjs)) install.packages('shinyjs')

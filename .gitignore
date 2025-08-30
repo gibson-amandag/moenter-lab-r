@@ -52,3 +52,7 @@ po/*~
 
 #ignore the generated html output
 *.html
+
+moenter-lab-r.Rproj
+
+~$*.xlsx
