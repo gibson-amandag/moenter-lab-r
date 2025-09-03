@@ -110,7 +110,7 @@ if(file_access("./.Renviron")){ # if .Renviron exists
   
   currentCompType <- Sys.getenv("COMP_TYPE")
 } else {
-  print("Note: No .Renviron found. If you are reading or saving files outside of RShiny file pickers, copy and edit the Renviron.example file")
+  # print("Note: No .Renviron found. If you are reading or saving files outside of RShiny file pickers, copy and edit the Renviron.example file")
   
   # Give defaults if no .Renviron
   
