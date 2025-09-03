@@ -7,6 +7,8 @@
 #    http://shiny.rstudio.com/
 #
 
+if(!require(shiny)) install.packages('shiny')
+if(!require(shinyFiles)) install.packages('shinyFiles')
 library(shiny)
 
 source("./01-scripts/01-set-up.R")
